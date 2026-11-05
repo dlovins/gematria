@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gematria Calculator</title>
+  <style>
+    :root{
+      --bg:#0b0c10;
+      --panel:#121420;
+      --panel2:#0f1220;
+      --text:#e9eef6;
+      --muted:#a9b5c6;
+      --accent:#67d5ff;
+      --accent2:#9cf2c8;
+      --danger:#ff6b6b;
+      --border:rgba(255,255,255,.12);
+      --shadow:0 18px 50px rgba(0,0,0,.55);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      --radius:14px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background: #0a1128;
+      padding: 26px 14px 60px;
+    }
+
+    .wrap{
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width: 0;
+    }
+
+    h1{
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: .2px;
+      line-height: 1.15;
+    }
+
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      max-width: 72ch;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      white-space:nowrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.4fr .8fr;
+      grid-template-areas:
+        "input result"
+        "breakdown result";
+      gap: 14px;
+      align-items: start;
+    }
+
+    .grid > *:nth-child(1){grid-area: input;}
+    .grid > *:nth-child(2){grid-area: result;}
+    .grid > *:nth-child(3){grid-area: breakdown;}
+
+    @media (max-width: 920px){
+      header{align-items:flex-start; flex-direction:column;}
+      .grid{grid-template-columns:1fr; grid-template-areas: "input" "result" "breakdown";}
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .head{
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,.16);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    .card .head h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing:.25px;
+      color: var(--text);
+    }
+
+    .card .body{
+      padding: 14px;
+    }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+
+    .label{
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0 0 8px;
+    }
+
+    textarea{
+      width: 100%;
+      resize: vertical;
+      min-height: 130px;
+      max-height: 360px;
+      padding: 12px 12px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      outline: none;
+      font-size: 18px;
+      line-height: 1.35;
+      direction: rtl;
+      unicode-bidi: plaintext;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
+    }
+
+    textarea:focus{
+      border-color: rgba(103,213,255,.45);
+      box-shadow: 0 0 0 3px rgba(103,213,255,.18), inset 0 0 0 1px rgba(0,0,0,.15);
+    }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-size: 13px;
+      cursor:pointer;
+      transition: transform .05s ease, background .12s ease, border-color .12s ease;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      user-select:none;
+    }
+
+    button:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.22);
+    }
+    button:active{transform: translateY(1px)}
+    button.primary{
+      background: linear-gradient(180deg, rgba(103,213,255,.22), rgba(103,213,255,.12));
+      border-color: rgba(103,213,255,.5);
+    }
+    button.primary:hover{
+      background: linear-gradient(180deg, rgba(103,213,255,.28), rgba(103,213,255,.14));
+      border-color: rgba(103,213,255,.6);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,107,107,.22), rgba(255,107,107,.10));
+      border-color: rgba(255,107,107,.55);
+    }
+    button.danger:hover{
+      background: linear-gradient(180deg, rgba(255,107,107,.28), rgba(255,107,107,.12));
+      border-color: rgba(255,107,107,.65);
+    }
+
+    .stat{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+    }
+
+    .stat .k{
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .stat .v{
+      font-family: var(--mono);
+      font-size: 22px;
+      letter-spacing:.3px;
+    }
+
+    .info{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(103,213,255,.28);
+      background: rgba(103,213,255,.10);
+      color: #d8f5ff;
+      font-size: 13px;
+      display:none;
+      white-space: pre-wrap;
+    }
+
+    .tablewrap{
+      overflow:auto;
+      max-height: 480px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.16);
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      min-width: 260px;
+    }
+
+    thead th{
+      text-align:left;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody td{
+      padding: 6px 6px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-size: 12px;
+    }
+
+    table.compact .rtl{
+      font-size: 14px;
+    }
+
+    tbody tr:hover td{
+      background: rgba(255,255,255,.03);
+    }
+
+    .rtl{
+      direction: rtl;
+      unicode-bidi: plaintext;
+      font-size: 16px;
+    }
+
+    .mono{
+      font-family: var(--mono);
+    }
+
+    .muted{
+      color: var(--muted);
+    }
+
+    .final-color{
+      color: #f2d675 !important;
+    }
+
+    .gadol-color{
+      color: var(--accent) !important;
+    }
+
+    .small{
+      font-size: 12px;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 520px){
+      table{min-width: 460px}
+      .kv{grid-template-columns: 1fr}
+    }
+
+    .values{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.14);
+      border-radius: 12px;
+      padding: 10px;
+      display:flex;
+      flex-wrap: nowrap;
+      justify-content:space-between;
+      align-items:center;
+      gap: 8px;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      width: 100%;
+      transition: transform .05s ease, background .12s ease, border-color .12s ease;
+    }
+
+    .chip:hover{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(103,213,255,.4);
+    }
+    .chip:active{transform: translateY(1px)}
+
+    .chip b{
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--text);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .chip span{
+      color: var(--muted);
+      font-size: 12px;
+      font-family: var(--mono);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .footer{
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    a, a:visited{color: var(--accent)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Gematria Calculator</h1>
+        <p class="subtitle">Enter Hebrew text and calculate Gematria</p>
+      </div>
+      <div class="pill">
+        <span class="mono">Gematria</span>
+        <span class="muted" id="pillRange">values: 1 to 400</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="head">
+          <h2>Input</h2>
+          <div class="row">
+            <button class="primary" id="btnCompute" type="button">Compute</button>
+            <button class="danger" id="btnReset" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="body">
+          <label class="label" for="hebrewInput" style="display:block;">Hebrew text (RTL). Standard letters only: א ב ג ד ה ו ז ח ט י כ ך ל מ ם נ ן ס ע פ ף צ ץ ק ר ש ת</label>
+          <textarea id="hebrewInput" placeholder="Type or paste Hebrew here..."></textarea>
+
+          <div id="infoBox" class="info" aria-live="polite"></div>
+
+          <div class="footer">
+            Notes:
+            <ul>
+              <li>Non-letter characters are ignored (spaces, punctuation, digits, etc.)</li>
+              <li>Under the "mispar gadol" system, ך (final form) = 500, ם (final form) = 600, ן (final form) = 700, ף (final form) = 800, and ץ (final form) = 900. This system is less common.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="head">
+          <h2>Result</h2>
+          <div class="row">
+            <span class="small muted mono" id="countLetters">letters: 0</span>
+          </div>
+        </div>
+        <div class="body">
+          <label class="row" style="gap:8px; cursor:pointer; margin-bottom:12px;">
+            <input type="checkbox" id="toggleMisparGadol" style="accent-color:var(--accent); width:16px; height:16px;" />
+            <span class="small gadol-color">Mispar gadol</span>
+            <span class="small muted">(final forms = 500–900)</span>
+          </label>
+
+          <div class="stat">
+            <div class="k">Total</div>
+            <div class="v" id="totalValue">0</div>
+          </div>
+
+          <div class="label" style="margin-top:12px;">Gematria values (standard letters)</div>
+          <div class="label small">Click a letter to insert it into the input above (<span class="final-color">Shift-click</span> for its final form).</div>
+          <div class="values" id="valueGrid"></div>
+        </div>
+      </aside>
+
+      <section class="card">
+        <div class="head">
+          <h2>Breakdown</h2>
+          <div class="row">
+            <span class="small muted">Per character, in order</span>
+          </div>
+        </div>
+        <div class="body">
+          <div class="tablewrap">
+            <table class="compact">
+              <thead>
+                <tr>
+                  <th style="width:34px;">#</th>
+                  <th style="width:56px;">Letter</th>
+                  <th>Value</th>
+                  <th>Running</th>
+                </tr>
+              </thead>
+              <tbody id="breakdownBody">
+                <tr>
+                  <td colspan="4" class="muted">No results yet. Enter Hebrew text to see the breakdown.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const MISPAR_HECHRACHI_STANDARD = Object.freeze({
+      "א": 1,  "ב": 2,  "ג": 3,  "ד": 4,  "ה": 5,
+      "ו": 6,  "ז": 7,  "ח": 8,  "ט": 9,  "י": 10,
+      "כ": 20, "ל": 30, "מ": 40, "נ": 50, "ס": 60,
+      "ע": 70, "פ": 80, "צ": 90, "ק": 100,"ר": 200,
+      "ש": 300,"ת": 400,
+      "ך": 20, "ם": 40, "ן": 50, "ף": 80, "ץ": 90
+    });
+
+    const MISPAR_GADOL_FINALS = Object.freeze({
+      ...MISPAR_HECHRACHI_STANDARD,
+      "ך": 500, "ם": 600, "ן": 700, "ף": 800, "ץ": 900
+    });
+
+    const FINAL_BY_BASE = Object.freeze({
+      "כ": "ך", "מ": "ם", "נ": "ן", "פ": "ף", "צ": "ץ"
+    });
+
+    let misparGadolMode = false;
+
+    function currentValueMap() {
+      return misparGadolMode ? MISPAR_GADOL_FINALS : MISPAR_HECHRACHI_STANDARD;
+    }
+
+    const elInput             = document.getElementById("hebrewInput");
+    const elTotal             = document.getElementById("totalValue");
+    const elCountLetters      = document.getElementById("countLetters");
+    const elBreakdownBody     = document.getElementById("breakdownBody");
+    const elInfoBox           = document.getElementById("infoBox");
+    const elPillRange         = document.getElementById("pillRange");
+    const elToggleMisparGadol = document.getElementById("toggleMisparGadol");
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setInfo(msg) {
+      if (msg) {
+        elInfoBox.style.display = "block";
+        elInfoBox.textContent = msg;
+      } else {
+        elInfoBox.style.display = "none";
+        elInfoBox.textContent = "";
+      }
+    }
+
+    function normalizeHebrewText(s) {
+      if (!s) return "";
+      return s.normalize("NFKC")
+        // Yiddish digraph ligatures -> their component letters
+        .replaceAll("װ", "וו")  // װ -> וו
+        .replaceAll("ױ", "וי")  // ױ -> וי
+        .replaceAll("ײ", "יי"); // ײ -> יי
+    }
+
+    // Hebrew vowel points / cantillation marks: silently ignored, not reported.
+    const HEBREW_MARKS = /[֑-ׇ]/u;
+
+    function compute() {
+      const raw  = elInput.value || "";
+      const text = normalizeHebrewText(raw);
+      const map  = currentValueMap();
+
+      const breakdown = [];
+      const ignored   = new Set();
+      let total     = 0;
+      let processed = 0;
+
+      for (const ch of text) {
+        const v = map[ch];
+        if (typeof v === "number") {
+          processed += 1;
+          total     += v;
+          breakdown.push({ letter: ch, value: v, running: total });
+        } else if (!/\s/u.test(ch) && !HEBREW_MARKS.test(ch)) {
+          ignored.add(ch);
+        }
+      }
+
+      elTotal.textContent        = String(total);
+      elCountLetters.textContent = "letters: " + String(processed);
+
+      if (raw.trim().length === 0) {
+        renderEmpty();
+      } else {
+        renderBreakdown(breakdown);
+      }
+
+      if (ignored.size > 0) {
+        const list = [...ignored].slice(0, 30).join(" ") + (ignored.size > 30 ? " …" : "");
+        setInfo("Ignored characters (not Hebrew letters): " + list);
+      } else {
+        setInfo("");
+      }
+
+      return { total, processed, breakdown };
+    }
+
+    const EMPTY_ROW =
+      '<tr><td colspan="4" class="muted">No results yet. Enter Hebrew text to see the breakdown.</td></tr>';
+
+    function renderEmpty() {
+      elBreakdownBody.innerHTML = EMPTY_ROW;
+    }
+
+    function renderBreakdown(rows) {
+      if (!rows || rows.length === 0) {
+        elBreakdownBody.innerHTML =
+          '<tr><td colspan="4" class="muted">No valid standard letters found.</td></tr>';
+        return;
+      }
+
+      let html = "";
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        html += "<tr>";
+        html += '<td class="mono">'  + String(i + 1)        + "</td>";
+        html += '<td class="rtl">'   + escapeHtml(r.letter) + "</td>";
+        html += '<td class="mono">'  + String(r.value)      + "</td>";
+        html += '<td class="mono">'  + String(r.running)    + "</td>";
+        html += "</tr>";
+      }
+      elBreakdownBody.innerHTML = html;
+    }
+
+    function buildValueGrid() {
+      const grid = document.getElementById("valueGrid");
+
+      const BASE_ORDER = [
+        "א","ב","ג","ד","ה","ו","ז","ח","ט","י",
+        "כ","ל","מ","נ","ס","ע","פ","צ","ק","ר","ש","ת"
+      ];
+
+      const map = currentValueMap();
+      let html = "";
+      for (const base of BASE_ORDER) {
+        const v      = map[base];
+        const final  = FINAL_BY_BASE[base];
+        const finalV = final ? map[final] : null;
+        const label  = final
+          ? `${escapeHtml(base)} / <span class="final-color">${escapeHtml(final)}</span>`
+          : escapeHtml(base);
+        const valueText = final && finalV !== v
+          ? `<span class="final-color">${String(finalV)}</span> / ${String(v)}`
+          : String(v);
+        const title = final
+          ? `Click to insert ${base} (=${v}) — Shift-click to insert final form ${final} (=${finalV})`
+          : `Click to insert ${base} (=${v})`;
+
+        html += `<button type="button" class="chip" data-letter="${escapeHtml(base)}"${
+          final ? ` data-final="${escapeHtml(final)}"` : ""
+        } title="${escapeHtml(title)}">`;
+        html += `<b class="rtl">${label}</b>`;
+        html += `<span>${valueText}</span>`;
+        html += `</button>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    function updatePillRange() {
+      elPillRange.textContent = misparGadolMode ? "values: 1 to 900" : "values: 1 to 400";
+    }
+
+    elToggleMisparGadol.addEventListener("change", () => {
+      misparGadolMode = elToggleMisparGadol.checked;
+      updatePillRange();
+      buildValueGrid();
+      compute();
+    });
+
+    function insertAtCursor(el, text) {
+      const start  = el.selectionStart ?? el.value.length;
+      const end    = el.selectionEnd   ?? el.value.length;
+      const before = el.value.slice(0, start);
+      const after  = el.value.slice(end);
+      el.value     = before + text + after;
+      const pos    = start + text.length;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    }
+
+    document.getElementById("valueGrid").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      const letter = (e.shiftKey && chip.dataset.final) ? chip.dataset.final : chip.dataset.letter;
+      insertAtCursor(elInput, letter);
+      compute();
+    });
+
+    function resetAll() {
+      elInput.value              = "";
+      elTotal.textContent        = "0";
+      elCountLetters.textContent = "letters: 0";
+      setInfo("");
+      renderEmpty();
+      elInput.focus();
+    }
+
+    document.getElementById("btnCompute").addEventListener("click", () => { compute(); });
+    document.getElementById("btnReset").addEventListener("click",   () => { resetAll(); });
+
+    // Live update as the user types or pastes
+    elInput.addEventListener("input", () => { compute(); });
+
+    elInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        compute();
+      }
+    });
+
+    updatePillRange();
+    buildValueGrid();
+    resetAll();
+  </script>
+</body>
+</html>
